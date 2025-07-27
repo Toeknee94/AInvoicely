@@ -1,0 +1,107 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String      @id @default(uuid())
+  email          String      @unique
+  name           String?
+  password       String?     // For future use if not using Firebase for all auth
+  role           UserRole    @default(USER)
+  trialEndsAt    DateTime? 
+  subscription   String?  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  clients        Client[]
+  invoices       Invoice[]
+  subscriptions  Subscription[]
+  payments       Payment[]
+  notifications  Notification[]
+}
+
+model Client {
+  id          String     @id @default(uuid())
+  user        User       @relation(fields: [userId], references: [id])
+  userId      String
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  invoices    Invoice[]
+}
+
+model Invoice {
+  id             String      @id @default(uuid())
+  user           User        @relation(fields: [userId], references: [id])
+  userId         String
+  client         Client      @relation(fields: [clientId], references: [id])
+  clientId       String
+  number         String      @unique
+  issueDate      DateTime
+  dueDate        DateTime
+  status         InvoiceStatus  @default(PENDING)
+  items          Json        // Array of invoice items (description, qty, price)
+  subtotal       Float
+  tax            Float?
+  total          Float
+  pdfUrl         String?     // URL to generated PDF invoice
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model Subscription {
+  id             String      @id @default(uuid())
+  user           User        @relation(fields: [userId], references: [id])
+  userId         String
+  stripeSubscriptionId String  @unique
+  status         String
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean   @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model Payment {
+  id             String      @id @default(uuid())
+  user           User        @relation(fields: [userId], references: [id])
+  userId         String
+  stripePaymentId String      @unique
+  amount         Float
+  currency       String
+  status         String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model Notification {
+  id             String      @id @default(uuid())
+  user           User        @relation(fields: [userId], references: [id])
+  userId         String
+  type           String
+  message        String
+  read           Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
