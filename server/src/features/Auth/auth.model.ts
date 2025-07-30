@@ -1,5 +1,5 @@
 // src/features/Auth/auth.model.ts
-import { prisma } from '../../config/prisma';
+import prisma from '../../config/prisma';
 
 export const findUserByEmail = async (email: string) => {
   return await prisma.user.findUnique({ where: { email } });

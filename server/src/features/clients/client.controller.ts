@@ -1,85 +1,72 @@
 import { Request, Response, NextFunction } from 'express';
-import {
-  getClients,
-  getClientById,
-  createClient,
-  updateClient,
-  deleteClient,
-} from './client.service';
+import * as clientService from './client.service';
 
-export async function getAllClients(req: Request, res: Response, next: NextFunction) {
+export const getClients = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const clients = await getClients(userId);
-    res.json(clients);
+    const clients = await clientService.getClients(userId);
+    res.status(200).json(clients);
   } catch (error) {
     next(error);
   }
-}
+};
 
-export async function getSingleClient(req: Request, res: Response, next: NextFunction) {
+export const getClientById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const clientId = req.params.clientId || req.params.id;
-    const client = await getClientById(clientId, userId);
+    const client = await clientService.getClientById(req.params.id, userId);
     if (!client) return res.status(404).json({ message: 'Client not found' });
 
-    res.json(client);
+    res.status(200).json(client);
   } catch (error) {
     next(error);
   }
-}
+};
 
-export async function createNewClient(req: Request, res: Response, next: NextFunction) {
+export const createClient = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const { name, email, phone, address } = req.body;
-
-    if (!name) return res.status(400).json({ message: 'Name is required' });
-
-    const newClient = await createClient({ userId, name, email, phone, address });
+    const newClient = await clientService.createClient({ ...req.body, userId });
     res.status(201).json(newClient);
   } catch (error) {
     next(error);
   }
-}
+};
 
-export async function updateExistingClient(req: Request, res: Response, next: NextFunction) {
+export const updateClient = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const clientId = req.params.clientId || req.params.id;
-    const { name, email, phone, address } = req.body;
+    const updated = await clientService.updateClient(req.params.id, req.body, userId);
+    if (updated.count === 0) {
+      return res.status(404).json({ message: 'Client not found or not authorized' });
+    }
 
-    // You might want to verify the client belongs to user here by fetching first
-
-    const updatedClient = await updateClient(clientId, { name, email, phone, address }, userId);
-    if (!updatedClient) return res.status(404).json({ message: 'Client not found or access denied' });
-
-    res.json(updatedClient);
+    res.status(200).json({ message: 'Client updated successfully' });
   } catch (error) {
     next(error);
   }
-}
+};
 
-export async function deleteClientById(req: Request, res: Response, next: NextFunction) {
+export const deleteClient = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const clientId = req.params.clientId || req.params.id;
-    const deleted = await deleteClient(clientId, userId);
-    if (!deleted) return res.status(404).json({ message: 'Client not found or access denied' });
+    const deleted = await clientService.deleteClient(req.params.id, userId);
+    if (deleted.count === 0) {
+      return res.status(404).json({ message: 'Client not found or not authorized' });
+    }
 
-    res.status(204).send();
+    res.status(200).json({ message: 'Client deleted successfully' });
   } catch (error) {
     next(error);
   }
-}
+};
